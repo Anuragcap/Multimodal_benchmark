@@ -1,7 +1,3 @@
-"""
-BioClip Stratified Experiment Runner - 36 Runs with Different Seeds
-Matches the stratified_adversarial_experiment.py structure for fair comparison
-"""
 import os
 import json
 import argparse

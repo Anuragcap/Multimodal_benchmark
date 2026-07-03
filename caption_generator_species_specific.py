@@ -1,22 +1,3 @@
-"""
-IDENTITY-ATTRIBUTE caption generator (ablation for the "what to caption" principle).
-
-This is a drop-in variant of caption_generator.py that prompts BLIP-2 for
-SPECIES-IDENTIFYING attributes (appearance/morphology) instead of environmental
-context. Everything else — model, generation settings, output schema, keying,
-resumability — is IDENTICAL to the baseline generator, so the resulting JSON
-loads through the exact same pipeline.
-
-Purpose: test the design principle. The principle predicts identity-attribute
-captions help IN-DISTRIBUTION (seen species) but FAIL / HURT OUT-OF-DISTRIBUTION
-(unseen species), because morphology does NOT transfer across the species shift,
-whereas environmental context does. Contrast against the baseline (environmental)
-captions on the SAME images / splits.
-
-The five aspects mirror the baseline's five-slot structure (so the formatted
-caption has the same shape) but ask about identity rather than environment:
-    fur_coat, body_shape, head_face, distinctive_markings, size_build
-"""
 import os
 import torch
 from transformers import Blip2Processor, Blip2ForConditionalGeneration
@@ -31,7 +12,7 @@ from dataset import prepare_dataset
 
 
 class IdentityCaptionGenerator:
-    """BLIP2 generator that describes species-IDENTITY attributes."""
+    
 
     def __init__(self, device: str = "auto", logger=None):
         self.device = torch.device(device if device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu"))

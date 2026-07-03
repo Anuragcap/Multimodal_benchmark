@@ -1,7 +1,3 @@
-"""
-BioClip Baseline Wildlife Captivity Detection
-CLIP trained on biological/wildlife data (iNaturalist)
-"""
 import os
 import torch
 import torch.nn as nn

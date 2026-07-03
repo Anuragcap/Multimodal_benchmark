@@ -20,7 +20,7 @@ from stratified_random_splitter import create_stratified_random_splits
 
 
 class DINOv2Model(nn.Module):
-    """DINOv2-based wildlife captivity detection model"""
+    
     
     def __init__(self, model_name: str = "facebook/dinov2-base", device: str = "cuda"):
         super().__init__()
@@ -65,8 +65,8 @@ class DINOv2Model(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            # Input x arrives with CLIP normalization
-            # Denormalize from CLIP then renormalize for DINOv2
+            
+            
             clip_mean = torch.tensor(
                 [0.48145466, 0.4578275, 0.40821073]
             ).view(1, 3, 1, 1).to(x.device)

@@ -11,9 +11,7 @@
 echo "Job ID: $SLURM_JOB_ID"
 echo "Node: $SLURM_NODELIST"
 echo "Start time: $(date)"
-echo "=========================================="
-echo "🧬 BioClip OOD - ALL 36 SPECIES COMBINATIONS"
-echo "=========================================="
+
 
 # Activate virtual environment
 source ~/myenv/bin/activate

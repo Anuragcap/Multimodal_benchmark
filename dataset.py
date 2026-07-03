@@ -67,7 +67,7 @@ def prepare_dataset(dataset_path: str, balance_strategy: str = "original",
 def create_data_splits(image_paths: List[str], labels: List[int], species: List[str],
                       train_ratio: float = 0.7, val_ratio: float = 0.2, test_ratio: float = 0.1,
                       random_seed: int = 42, logger=None) -> Dict[str, Tuple[List, List, List]]:
-    """Create train/validation/test splits with SPECIES-AWARE splitting to prevent data leakage"""
+    
     if logger:
         logger.info("🛠️ Creating species-stratified splits to prevent data leakage...")
     
@@ -385,7 +385,7 @@ class WildlifeDataset(Dataset):
             }
 
 class MultiModalDataset(WildlifeDataset):
-    """Dataset for multimodal training with captions"""
+    
     
     def __init__(self, image_paths: List[str], labels: List[int], species: List[str],
                  captions_data: Dict[str, Dict], clip_tokenizer,

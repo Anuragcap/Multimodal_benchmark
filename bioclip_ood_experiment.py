@@ -1,7 +1,3 @@
-"""
-BioClip OOD Experiment Runner - All 36 Species Combinations
-Matches the adversarial_experiment_runner.py structure for fair comparison
-"""
 import os
 import json
 import argparse

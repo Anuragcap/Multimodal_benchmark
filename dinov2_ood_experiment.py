@@ -10,7 +10,7 @@ from scipy import stats
 def run_single_dinov2_ood_experiment(dataset_path: str, balance_strategy: str,
                                      output_dir: str, run_id: int, seed: int,
                                      experiment_logger, test_species_pair: tuple = None) -> Dict[str, Any]:
-    """Run a single DINOv2 experiment with OOD splits"""
+    
     
     experiment_logger.info(f"\n🦖 Running DINOv2 OOD Experiment {run_id} (seed={seed})")
     if test_species_pair:
@@ -110,7 +110,7 @@ def run_single_dinov2_ood_experiment(dataset_path: str, balance_strategy: str,
 
 
 def compute_statistics(successful_experiments: List[Dict]) -> Dict[str, Any]:
-    """Compute statistics across all experiments"""
+    
     
     accuracies = [exp['test_metrics']['accuracy'] for exp in successful_experiments]
     f1_scores = [exp['test_metrics']['f1_score'] for exp in successful_experiments]

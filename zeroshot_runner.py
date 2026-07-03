@@ -10,9 +10,6 @@ from tqdm import tqdm
 from scipy import stats
 from itertools import combinations
 
-
-# ─── Class prompts (prompt ensembling) ────────────────────────────────────────
-
 WILD_PROMPTS = [
     "a photo of a wild animal",
     "a photo of an animal in the wild",
@@ -28,9 +25,6 @@ CAPTIVE_PROMPTS = [
 ]
 
 LABEL_NAMES = ["wild", "captive"]  # 0=wild, 1=captive
-
-
-# ─── Zero-Shot Evaluator ──────────────────────────────────────────────────────
 
 class ZeroShotCLIPEvaluator:
     """Load CLIP once, reuse across all 36 runs."""
@@ -102,7 +96,7 @@ def run_single_zeroshot_experiment(
     run_id: int,
     seed: int,
     logger,
-    split_mode: str,                          # "stratified" or "ood"
+    split_mode: str,                        
     test_species_pair: Optional[tuple] = None,
 ) -> Dict[str, Any]:
     

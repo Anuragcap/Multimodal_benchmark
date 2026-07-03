@@ -31,10 +31,7 @@ LABEL_NAMES = ["wild", "captive"]  # Index 0=wild, 1=captive
 
 
 class ZeroShotCLIPEvaluator:
-    """
-    Evaluates images using zero-shot CLIP classification.
-    No training. No classifier head. Pure cosine similarity.
-    """
+
 
     def __init__(self, device: str = "cuda"):
         self.device = torch.device(device if torch.cuda.is_available() else "cpu")
@@ -80,10 +77,7 @@ class ZeroShotCLIPEvaluator:
 
     @torch.no_grad()
     def evaluate(self, dataloader: DataLoader) -> Dict[str, Any]:
-        """
-        Run zero-shot evaluation on a dataloader.
-        Returns predictions, labels, probabilities, and per-species breakdown.
-        """
+        
         all_predictions = []
         all_labels = []
         all_probs = []       # Probability of captive class (index 1)
@@ -124,7 +118,7 @@ class ZeroShotCLIPEvaluator:
         }
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -162,7 +156,7 @@ def main():
     logger.info(f"Dataset: {args.dataset_path}")
     logger.info("=" * 80)
 
-    # ── Prepare dataset ──────────────────────────────────────────────────────
+    
     logger.info("\nPreparing dataset...")
     image_paths, labels, species_list = prepare_dataset(
         args.dataset_path, args.balance_strategy, logger
@@ -260,7 +254,7 @@ def main():
     results_path = os.path.join(args.output_dir, 'zeroshot_baseline_results.json')
     save_results(final_results, results_path)
 
-    # ── Print summary ─────────────────────────────────────────────────────────
+    
     logger.info("\n" + "=" * 80)
     logger.info("ZERO-SHOT CLIP BASELINE RESULTS")
     logger.info("=" * 80)

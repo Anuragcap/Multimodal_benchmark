@@ -109,13 +109,7 @@ class SigLIP2BothLoRA(_SigLIP2Base):
         return self.classifier(torch.cat([img, txt], dim=-1))
 
 
-# ----------------------------------------------------------------------------
-# Genuine SINGLE-MODALITY LoRA conditions (the "presence ablation under LoRA").
-# "image-only" = IMAGE ONLY (no caption), vision tower adapted; "text-only" =
-# CAPTION ONLY (no image), text tower adapted. NO concatenation: the other
-# modality is absent entirely. classifier dim = single embedding (dim), set via
-# use_text=False so the head is built at width `dim`, not `dim*2`.
-# ----------------------------------------------------------------------------
+
 class SigLIP2ImageOnlyLoRA(_SigLIP2Base):
     """Image input only; LoRA on the vision tower; captions NOT used."""
     def __init__(self, device="cuda", num_classes=2):
@@ -123,27 +117,22 @@ class SigLIP2ImageOnlyLoRA(_SigLIP2Base):
 
     def forward(self, batch):
         pv = batch['siglip_pixel_values'].to(self.device)
-        img = self.encode_image(pv)                 # LoRA-adapted vision
-        return self.classifier(img)                 # single modality, no concat
+        img = self.encode_image(pv)               
+        return self.classifier(img)               
 
 
 class SigLIP2TextOnlyLoRA(_SigLIP2Base):
     """Caption input only; LoRA on the text tower; image NOT used."""
     def __init__(self, device="cuda", num_classes=2):
-        # use_text=False builds a width-`dim` head; we feed it the TEXT embedding.
+        
         super().__init__(device, num_classes, use_text=False, lora_where='text')
 
     def forward(self, batch):
         ids = batch['siglip_input_ids'].to(self.device)
-        txt = self.encode_text(ids)                 # LoRA-adapted text
-        return self.classifier(txt)                 # single modality, no concat
+        txt = self.encode_text(ids)                
+        return self.classifier(txt)                
 
 
-# ----------------------------------------------------------------------------
-# Smoke test — RUN THIS FIRST, before any sweep.
-#   python siglip2_backbone.py
-# Confirms: model loads, LoRA attaches to each tower (nonzero %), forward runs.
-# ----------------------------------------------------------------------------
 def _smoke():
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     proc = AutoProcessor.from_pretrained(SIGLIP2_CKPT)

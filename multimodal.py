@@ -1,6 +1,3 @@
-"""
-Clean Multimodal Wildlife Captivity Detection using CLIP (Baseline Only)
-"""
 import os
 import torch
 import torch.nn as nn

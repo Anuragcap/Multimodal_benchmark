@@ -15,17 +15,12 @@ def run_single_stratified_experiment(dataset_path: str, balance_strategy: str,
 
     experiment_logger.info(f"\n🔬 Running Stratified Experiment {run_id} (seed={seed})")
     experiment_logger.info("   Mode: STRATIFIED (same species in train/test - NOT OOD)")
-    experiment_logger.info("   4-way comparison: Text-Only → Single → Multimodal → Adversarial")
+    experiment_logger.info("   3-way comparison: Text-Only → Single → Multimodal")
     experiment_logger.info("-" * 80)
 
     try:
         from dataset import prepare_dataset, create_data_transforms
         from stratified_random_splitter import create_stratified_random_splits
-        from species_adversarial_multimodal import SpeciesAdversarialTrainer
-        from species_adversarial_dataset import (
-            create_species_adversarial_dataloaders,
-            analyze_species_adversarial_splits
-        )
         from single_modal import SingleModalTrainer
         from multimodal import MultiModalTrainer
         from text_only import TextOnlyTrainer
@@ -46,21 +41,17 @@ def run_single_stratified_experiment(dataset_path: str, balance_strategy: str,
             random_seed=seed, logger=experiment_logger
         )
 
-        # Create species mapping
         unique_species = sorted(set(species_list))
-        species_to_idx = {species: idx for idx, species in enumerate(unique_species)}
-
-        # Analyze splits
-        split_analysis = analyze_species_adversarial_splits(splits, species_to_idx)
+        train_sp = set(splits['train'][2])
+        val_sp = set(splits['val'][2])
+        test_sp = set(splits['test'][2])
 
         experiment_logger.info(f"\n📊 SPECIES DISTRIBUTION FOR RUN {run_id}:")
-        experiment_logger.info(f"  Train Species ({len(split_analysis['species_distribution']['train'])}): {split_analysis['species_distribution']['train']}")
-        experiment_logger.info(f"  Val Species   ({len(split_analysis['species_distribution']['val'])}): {split_analysis['species_distribution']['val']}")
-        experiment_logger.info(f"  Test Species  ({len(split_analysis['species_distribution']['test'])}): {split_analysis['species_distribution']['test']}")
+        experiment_logger.info(f"  Train Species ({len(train_sp)}): {sorted(train_sp)}")
+        experiment_logger.info(f"  Val Species   ({len(val_sp)}): {sorted(val_sp)}")
+        experiment_logger.info(f"  Test Species  ({len(test_sp)}): {sorted(test_sp)}")
 
         # Check overlap (should be HIGH for stratified splits)
-        train_sp = set(split_analysis['species_distribution']['train'])
-        test_sp = set(split_analysis['species_distribution']['test'])
         overlap_count = len(train_sp & test_sp)
         total_species = len(unique_species)
 
@@ -135,13 +126,13 @@ def run_single_stratified_experiment(dataset_path: str, balance_strategy: str,
         experiment_logger.info(f"  ✓ Single Modal Test: Acc={sm['accuracy']:.4f}, F1={sm['f1_score']:.4f}, MCC={sm['mcc']:.4f}")
         experiment_logger.info(f"    vs Text-Only: {sm['accuracy'] - to['accuracy']:+.4f}")
 
-       
+        
         multimodal_dataloaders = create_single_dataloaders(
             filtered_splits, transforms_dict, config.data.batch_size,
             config.data.num_workers, captions_data, clip_tokenizer
         )
 
-        experiment_logger.info(f"\n📄 Training Baseline Multimodal (Custom Captions, No Adversarial)...")
+        experiment_logger.info(f"\n📄 Training Baseline Multimodal (Custom Captions)...")
         multimodal_trainer = MultiModalTrainer(config, experiment_logger)
         multimodal_trainer.setup_training(filtered_splits['train'][1])
         multimodal_training = multimodal_trainer.train(multimodal_dataloaders['train'], multimodal_dataloaders['val'])
@@ -152,30 +143,11 @@ def run_single_stratified_experiment(dataset_path: str, balance_strategy: str,
         experiment_logger.info(f"    vs Single Modal: {mm['accuracy'] - sm['accuracy']:+.4f}")
 
         
-        adversarial_dataloaders = create_species_adversarial_dataloaders(
-            filtered_splits, transforms_dict, config.data.batch_size,
-            config.data.num_workers, captions_data, clip_tokenizer, species_to_idx
-        )
-
-        experiment_logger.info(f"\n🤖 Training Species-Adversarial Multimodal (STRATIFIED)...")
-        adversarial_trainer = SpeciesAdversarialTrainer(config, species_to_idx, experiment_logger)
-        adversarial_trainer.setup_training(filtered_splits['train'][1])
-        adversarial_training = adversarial_trainer.train(
-            adversarial_dataloaders['train'], adversarial_dataloaders['val']
-        )
-        adversarial_results = adversarial_trainer.evaluate(adversarial_dataloaders['test'])
-
-        am = adversarial_results['overall_metrics']
-        experiment_logger.info(f"  ✓ Adversarial Test: Acc={am['accuracy']:.4f}, F1={am['f1_score']:.4f}, MCC={am['mcc']:.4f}, SpeciesDisc={adversarial_results['species_discrimination_accuracy']:.4f}")
-        experiment_logger.info(f"    vs Multimodal: {am['accuracy'] - mm['accuracy']:+.4f}")
-
-        
-        experiment_logger.info(f"\n📈 STRATIFIED RUN {run_id} - 4-WAY COMPARISON:")
+        experiment_logger.info(f"\n📈 STRATIFIED RUN {run_id} - 3-WAY COMPARISON:")
         experiment_logger.info(f"  1. Text-Only:        {to['accuracy']:.4f}")
         experiment_logger.info(f"  2. Single Modal:     {sm['accuracy']:.4f} ({sm['accuracy'] - to['accuracy']:+.4f})")
         experiment_logger.info(f"  3. Multimodal:       {mm['accuracy']:.4f} ({mm['accuracy'] - sm['accuracy']:+.4f})")
-        experiment_logger.info(f"  4. Adversarial:      {am['accuracy']:.4f} ({am['accuracy'] - mm['accuracy']:+.4f})")
-        experiment_logger.info(f"  Total Improvement:   {am['accuracy'] - to['accuracy']:+.4f}")
+        experiment_logger.info(f"  Total Improvement:   {mm['accuracy'] - to['accuracy']:+.4f}")
 
         # Compile results
         experiment_result = {
@@ -183,14 +155,13 @@ def run_single_stratified_experiment(dataset_path: str, balance_strategy: str,
             'seed': seed,
             'split_type': 'stratified_random',
             'species_splits': {
-                'train_species': split_analysis['species_distribution']['train'],
-                'val_species': split_analysis['species_distribution']['val'],
-                'test_species': split_analysis['species_distribution']['test'],
+                'train_species': sorted(train_sp),
+                'val_species': sorted(val_sp),
+                'test_species': sorted(test_sp),
                 'total_species': len(unique_species),
                 'train_test_overlap_count': overlap_count,
                 'train_test_overlap_percent': 100 * overlap_count / total_species,
-                'split_verification': 'stratified_with_overlap',
-                'species_mapping': species_to_idx
+                'split_verification': 'stratified_with_overlap'
             },
             'dataset_sizes': {
                 'total_images': len(image_paths),
@@ -218,15 +189,6 @@ def run_single_stratified_experiment(dataset_path: str, balance_strategy: str,
                     'best_epoch': multimodal_training['best_epoch'],
                     'best_val_loss': multimodal_training['best_val_loss']
                 }
-            },
-            'adversarial_multimodal': {
-                'test_metrics': adversarial_results['overall_metrics'],
-                'species_discrimination_accuracy': adversarial_results['species_discrimination_accuracy'],
-                'per_species_captivity_accuracy': adversarial_results['species_metrics'],
-                'training_info': {
-                    'best_epoch': adversarial_training['best_epoch'],
-                    'best_val_loss': adversarial_training['best_val_loss']
-                }
             }
         }
 
@@ -243,23 +205,18 @@ def run_single_stratified_experiment(dataset_path: str, balance_strategy: str,
 def compute_stratified_statistics(successful_experiments: List[Dict]) -> Dict[str, Any]:
     
 
-    # Extract metrics for all four models
+    # Extract metrics for all three models
     text_only_acc = [exp['text_only_baseline']['test_metrics']['accuracy'] for exp in successful_experiments]
     single_acc = [exp['single_modal_baseline']['test_metrics']['accuracy'] for exp in successful_experiments]
     multimodal_acc = [exp['multimodal_baseline']['test_metrics']['accuracy'] for exp in successful_experiments]
-    adversarial_acc = [exp['adversarial_multimodal']['test_metrics']['accuracy'] for exp in successful_experiments]
 
     text_only_f1 = [exp['text_only_baseline']['test_metrics']['f1_score'] for exp in successful_experiments]
     single_f1 = [exp['single_modal_baseline']['test_metrics']['f1_score'] for exp in successful_experiments]
     multimodal_f1 = [exp['multimodal_baseline']['test_metrics']['f1_score'] for exp in successful_experiments]
-    adversarial_f1 = [exp['adversarial_multimodal']['test_metrics']['f1_score'] for exp in successful_experiments]
 
     text_only_mcc = [exp['text_only_baseline']['test_metrics']['mcc'] for exp in successful_experiments]
     single_mcc = [exp['single_modal_baseline']['test_metrics']['mcc'] for exp in successful_experiments]
     multimodal_mcc = [exp['multimodal_baseline']['test_metrics']['mcc'] for exp in successful_experiments]
-    adversarial_mcc = [exp['adversarial_multimodal']['test_metrics']['mcc'] for exp in successful_experiments]
-
-    species_disc_acc = [exp['adversarial_multimodal']['species_discrimination_accuracy'] for exp in successful_experiments]
 
     def analyze_paired_metric(baseline_vals, test_vals, metric_name):
         baseline_vals = np.array(baseline_vals)
@@ -299,7 +256,7 @@ def compute_stratified_statistics(successful_experiments: List[Dict]) -> Dict[st
             f'{metric_name}_significant_at_001': str(p_value < 0.001)
         }
 
-    # All 4-way comparisons
+    # All 3-way comparisons
     single_vs_text_acc = analyze_paired_metric(text_only_acc, single_acc, 'accuracy')
     single_vs_text_f1 = analyze_paired_metric(text_only_f1, single_f1, 'f1_score')
     single_vs_text_mcc = analyze_paired_metric(text_only_mcc, single_mcc, 'mcc')
@@ -308,13 +265,9 @@ def compute_stratified_statistics(successful_experiments: List[Dict]) -> Dict[st
     multimodal_vs_single_f1 = analyze_paired_metric(single_f1, multimodal_f1, 'f1_score')
     multimodal_vs_single_mcc = analyze_paired_metric(single_mcc, multimodal_mcc, 'mcc')
 
-    adversarial_vs_multimodal_acc = analyze_paired_metric(multimodal_acc, adversarial_acc, 'accuracy')
-    adversarial_vs_multimodal_f1 = analyze_paired_metric(multimodal_f1, adversarial_f1, 'f1_score')
-    adversarial_vs_multimodal_mcc = analyze_paired_metric(multimodal_mcc, adversarial_mcc, 'mcc')
-
-    adversarial_vs_text_acc = analyze_paired_metric(text_only_acc, adversarial_acc, 'accuracy')
-    adversarial_vs_text_f1 = analyze_paired_metric(text_only_f1, adversarial_f1, 'f1_score')
-    adversarial_vs_text_mcc = analyze_paired_metric(text_only_mcc, adversarial_mcc, 'mcc')
+    multimodal_vs_text_acc = analyze_paired_metric(text_only_acc, multimodal_acc, 'accuracy')
+    multimodal_vs_text_f1 = analyze_paired_metric(text_only_f1, multimodal_f1, 'f1_score')
+    multimodal_vs_text_mcc = analyze_paired_metric(text_only_mcc, multimodal_mcc, 'mcc')
 
     return {
         'num_experiments': len(successful_experiments),
@@ -328,30 +281,19 @@ def compute_stratified_statistics(successful_experiments: List[Dict]) -> Dict[st
             'f1_score': multimodal_vs_single_f1,
             'mcc': multimodal_vs_single_mcc
         },
-        'adversarial_vs_multimodal': {
-            'accuracy': adversarial_vs_multimodal_acc,
-            'f1_score': adversarial_vs_multimodal_f1,
-            'mcc': adversarial_vs_multimodal_mcc
-        },
-        'adversarial_vs_text_only_total': {
-            'accuracy': adversarial_vs_text_acc,
-            'f1_score': adversarial_vs_text_f1,
-            'mcc': adversarial_vs_text_mcc
-        },
-        'species_discrimination_analysis': {
-            'mean_accuracy': np.mean(species_disc_acc),
-            'std_accuracy': np.std(species_disc_acc),
-            'min_accuracy': np.min(species_disc_acc),
-            'max_accuracy': np.max(species_disc_acc)
+        'multimodal_vs_text_only_total': {
+            'accuracy': multimodal_vs_text_acc,
+            'f1_score': multimodal_vs_text_f1,
+            'mcc': multimodal_vs_text_mcc
         }
     }
 
 
-def run_stratified_adversarial_experiment(dataset_path: str, balance_strategy: str,
-                                          output_base_dir: str, num_runs: int = 10) -> Dict[str, Any]:
+def run_stratified_experiment(dataset_path: str, balance_strategy: str,
+                              output_base_dir: str, num_runs: int = 10) -> Dict[str, Any]:
     
 
-    experiment_name = f"stratified_adversarial_4way_{balance_strategy.replace(':', '_')}"
+    experiment_name = f"stratified_frozen_3way_{balance_strategy.replace(':', '_')}"
     output_dir = os.path.join(output_base_dir, experiment_name)
     os.makedirs(output_dir, exist_ok=True)
 
@@ -359,22 +301,18 @@ def run_stratified_adversarial_experiment(dataset_path: str, balance_strategy: s
     log_file = os.path.join(output_dir, 'stratified_experiment_log.txt')
     logger = setup_logging("INFO", log_file)
 
-    logger.info(f"🎯 STRATIFIED ADVERSARIAL EXPERIMENT (NON-OOD) - 4-WAY COMPARISON")
-    logger.info(f"Goal: Ablation showing contribution of each component")
+    logger.info(f"🎯 STRATIFIED EXPERIMENT (NON-OOD) - 3-WAY COMPARISON")
     logger.info(f"Method: {num_runs} runs with STRATIFIED random splits")
-    logger.info(f"Note: Same species appear in train AND test (NOT OOD)")
-    logger.info(f"Comparing:")
     logger.info(f"  1. Text-Only (captions only)")
     logger.info(f"  2. Single Modal (vision only)")
     logger.info(f"  3. Multimodal (custom captions)")
-    logger.info(f"  4. Adversarial Multimodal (+ species invariance)")
-    logger.info(f"  (CLIP baseline removed; true zero-shot reported separately)")
+    
     logger.info("=" * 100)
 
-    # Handle captions (same as before)
+    # Handle captions
     logger.info("\n🔍 Setting up captions...")
 
-    ood_captions = f"1on10_adversarial_results/adversarial_species_generalization_{balance_strategy.replace(':', '_')}/adversarial_experiment_captions.json"
+    ood_captions = f"1on10_ood_results/ood_frozen_3way_{balance_strategy.replace(':', '_')}/ood_experiment_captions.json"
     captions_file = os.path.join(output_dir, 'stratified_experiment_captions.json')
 
     if os.path.exists(ood_captions):
@@ -438,13 +376,13 @@ def run_stratified_adversarial_experiment(dataset_path: str, balance_strategy: s
     experiment_results['successful_runs'] = successful_runs
     experiment_results['failed_runs'] = len(experiment_results['failed_experiments'])
 
-    results_file = os.path.join(output_dir, 'stratified_adversarial_4way_results.json')
+    results_file = os.path.join(output_dir, 'stratified_frozen_3way_results.json')
     with open(results_file, 'w') as f:
         json.dump(experiment_results, f, indent=2, default=str)
 
     # Print summary
     logger.info("\n" + "=" * 100)
-    logger.info("STRATIFIED 4-WAY COMPARISON RESULTS")
+    logger.info("STRATIFIED 3-WAY COMPARISON RESULTS")
     logger.info("=" * 100)
     logger.info(f"Successful: {successful_runs}/{num_runs}")
 
@@ -453,7 +391,7 @@ def run_stratified_adversarial_experiment(dataset_path: str, balance_strategy: s
 
         logger.info(f"\n🎯 STATISTICAL ANALYSIS:")
         for comparison in ['single_modal_vs_text_only', 'multimodal_vs_single_modal',
-                           'adversarial_vs_multimodal', 'adversarial_vs_text_only_total']:
+                           'multimodal_vs_text_only_total']:
             logger.info(f"\n{comparison.upper()}:")
             for metric in ['accuracy', 'f1_score', 'mcc']:
                 data = stats_data[comparison][metric]
@@ -467,15 +405,15 @@ def run_stratified_adversarial_experiment(dataset_path: str, balance_strategy: s
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Run stratified adversarial experiments with 4-way comparison")
+    parser = argparse.ArgumentParser(description="Run stratified experiments with 3-way comparison (no adversarial)")
     parser.add_argument('--dataset_path', type=str, required=True, help='Path to dataset')
     parser.add_argument('--balance_strategy', type=str, default='1:10', help='Balance strategy')
-    parser.add_argument('--output_dir', type=str, default='./stratified_results_4way', help='Output directory')
+    parser.add_argument('--output_dir', type=str, default='./stratified_results_3way', help='Output directory')
     parser.add_argument('--num_runs', type=int, default=36, help='Number of experimental runs')
 
     args = parser.parse_args()
 
-    run_stratified_adversarial_experiment(
+    run_stratified_experiment(
         args.dataset_path,
         args.balance_strategy,
         args.output_dir,

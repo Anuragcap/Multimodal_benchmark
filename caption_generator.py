@@ -1,6 +1,3 @@
-"""
-Clean Caption Generation for Wildlife Images using BLIP2 (Baseline Only)
-"""
 import os
 import torch
 from transformers import Blip2Processor, Blip2ForConditionalGeneration

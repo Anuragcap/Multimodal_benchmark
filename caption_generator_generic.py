@@ -1,22 +1,3 @@
-"""
-GENERIC single-caption generator (ablation for the "what to caption" principle).
-
-Drop-in variant of caption_generator.py that produces ONE plain, unstructured
-BLIP-2 caption per image ("describe this image"), instead of five designed
-aspects. Same model, generation settings, output schema, keying, resumability.
-
-Purpose: isolate whether the STRUCTURED, task-designed five-aspect scheme matters,
-versus simply "adding any caption." The principle predicts the structured
-environmental scheme beats a generic caption — especially OOD — because the
-generic caption mixes in species-identifying content and lacks the deliberate
-environmental decomposition.
-
-Schema note: to stay compatible with the baseline pipeline (which stores
-`captions` as a dict of aspect->text and concatenates the values), the generic
-caption is stored under a single key 'description'. If your caption LOADER
-hard-codes the five baseline aspect names, point it at this 'description' key
-for this variant (see README note printed at end of run).
-"""
 import os
 import torch
 from transformers import Blip2Processor, Blip2ForConditionalGeneration
