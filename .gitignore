@@ -1,0 +1,26 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+venv/
+.venv/
+*.egg-info/
+
+# Model weights / checkpoints (large binary files - consider Git LFS or external hosting instead)
+*.pth
+*.h5
+*.ckpt
+
+# Logs and temp outputs
+logs/
+*.log
+/tmp/
+
+# Editor
+.vscode/
+.idea/
