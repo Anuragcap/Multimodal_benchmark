@@ -48,7 +48,6 @@ data/
 ├── dataset.py                              # WildlifeDataset, transforms, dataloaders, caption formatting
 ├── stratified_random_splitter.py           # In-distribution splits (species present in train/val/test)
 ├── random_species_splitter.py              # Out-of-distribution splits (species-disjoint; 36 combos)
-├── species_adversarial_dataset.py          # Dataset class for the adversarial (DANN) baseline / few-shot runner
 │
 ├── # Caption Generation (BLIP-2)
 ├── caption_generator.py                    # Environmental captions (behavior/surroundings/background/lighting/vegetation) — main benchmark
@@ -66,8 +65,8 @@ data/
 ├── lora_vision_runner.py                   # 4-way: multimodal-frozen / vision-frozen / vision-LoRA / multimodal-LoRA
 ├── lora_placement_runner.py                # 4-way LoRA-placement ablation: frozen / vision-LoRA / text-LoRA / both-LoRA
 ├── fewshot_runner.py                       # K-shot (K=1,5,10,20) linear probe, vision-only vs multimodal, frozen CLIP
-├── stratified_adversarial_runner.py        # In-distribution: text-only / single-modal / multimodal / adversarial(DANN)
-├── adversarial_runner.py                   # Out-of-distribution version of the above (36 species combos)
+├── stratified_frozen_runner.py             # In-distribution frozen probes: text-only / single-modal / multimodal (36 seeds)
+├── ood_frozen_runner.py                    # Out-of-distribution version of the above (36 species combos)
 │
 ├── # SigLIP2 Models & Experiments
 ├── siglip2_backbone.py                     # SigLIP2 model classes: Frozen, ImageOnlyLoRA, TextOnlyLoRA, BothLoRA
@@ -83,7 +82,7 @@ data/
 ├── dinov2_ood_experiment.py                # DINOv2 out-of-distribution (36 species combos)
 │
 ├── # SLURM Job Scripts
-├── run_stratified.sh / run_ood.sh          # Text-only / single-modal / multimodal / adversarial (in-dist. / OOD)
+├── run_stratified.sh / run_ood.sh          # Text-only / single-modal / multimodal frozen probes (in-dist. / OOD)
 ├── run_clip_presence.sh                    # clip_presence_runner.py array job (810/3858 × ood/stratified)
 ├── run_siglip2.sh                          # siglip2_runner.py array job (810/3858 × ood/stratified)
 ├── run_siglip_frozen_eval.sh               # siglip2_frozen_eval.py array job (zero-shot/frozen/few-shot)
@@ -226,13 +225,13 @@ python dinov2_stratified_experiment.py --dataset_path data/1_10_dataset --output
 python dinov2_ood_experiment.py        --dataset_path data/1_10_dataset --output_dir ./dinov2_ood_all_combos    --balance_strategy original
 ```
 
-### Step 6 — Adversarial (DANN) baseline
+### Step 6 — Frozen-probe baselines (Text-only / Single-Modal / Multimodal)
 
-In-distribution / out-of-distribution runs of text-only, single-modal, multimodal, and adversarial (gradient-reversal) models:
+In-distribution and out-of-distribution runs of the three frozen-probe conditions reported in the paper — Text-only, Single-Modal (vision-only), and Multimodal — each trained for 36 seeds (stratified) or across all 36 species-disjoint combinations (OOD):
 
 ```bash
-python stratified_adversarial_runner.py --dataset_path data/1_10_dataset --balance_strategy original --output_dir ./stratified_results --num_runs 36
-python adversarial_runner.py            --dataset_path data/1_10_dataset --balance_strategy original --output_dir ./ood_results
+python stratified_frozen_runner.py --dataset_path data/1_10_dataset --balance_strategy original --output_dir ./stratified_results --num_runs 36
+python ood_frozen_runner.py        --dataset_path data/1_10_dataset --balance_strategy original --output_dir ./ood_results
 ```
 
 ### Running via SLURM
@@ -240,7 +239,7 @@ python adversarial_runner.py            --dataset_path data/1_10_dataset --balan
 Each experiment has a matching `.sh` script (edit `DATASET_PATH` / `CAPTIONS_810` / `CAPTIONS_3858` at the top of each script first):
 
 ```bash
-sbatch run_stratified.sh          # text-only / single-modal / multimodal / adversarial (in-distribution)
+sbatch run_stratified.sh          # text-only / single-modal / multimodal frozen probes (in-distribution)
 sbatch run_ood.sh                 # same, out-of-distribution
 sbatch run_clip_presence.sh       # clip_presence_runner.py, array job over 810/3858 × ood/stratified
 sbatch run_siglip2.sh             # siglip2_runner.py, array job
@@ -257,7 +256,7 @@ sbatch zeroshot_runner.sh / zeroshot_runnerood.sh
 If you find this work useful, please cite:
 
 ```bibtex
-@inproceedings{Anonymoues026,
+@inproceedings{Anonymous2026,
   title     = {Captive or Wild? A Multimodal Benchmark for Cross-Species Captivity Detection},
   author    = {Anonymous},
   booktitle = {Proceedings of the Asian Conference on Computer Vision (ACCV)},

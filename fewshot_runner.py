@@ -71,8 +71,7 @@ def _fit_eval(train_feats, train_y, support_idx, test_feats, test_y):
 
 def run_single(dataset_path, balance_strategy, captions_file, run_id, seed,
                split_mode, logger, test_species_pair=None):
-    from dataset import prepare_dataset, create_data_transforms
-    from species_adversarial_dataset import create_species_adversarial_dataloaders
+    from dataset import prepare_dataset, create_data_transforms, create_dataloaders
     from config import create_config
     from utils import set_seed, load_captions_data
     import open_clip
@@ -124,9 +123,9 @@ def run_single(dataset_path, balance_strategy, captions_file, run_id, seed,
                 f"Caption keys likely don't match {dataset_path} image paths. "
                 f"Example split path: {splits[sk][0][0] if raw_n else 'N/A'}")
 
-    dl = create_species_adversarial_dataloaders(
+    dl = create_dataloaders(
         fsplits, transforms_dict, config.data.batch_size, config.data.num_workers,
-        captions_data, tokenizer, species_to_idx)
+        captions_data, tokenizer)
     device = config.device
 
     clip_model, _, _ = open_clip.create_model_and_transforms('ViT-B-16', pretrained='openai')
